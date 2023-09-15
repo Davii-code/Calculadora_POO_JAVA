@@ -249,8 +249,7 @@ public class CalculadoraSwingClient extends JFrame {
             calculadora.adicionarNumero(campoDeExibicao.getText());
             calculadora.calcularResultado();
             int resultado = calculadora.getResultado();
-            rotuloResultado.setText("Resultado: " + resultado);
-            campoDeExibicao.setText("");
+            campoDeExibicao.setText("Resultado: " + resultado);
         }
     }
 
