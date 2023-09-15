@@ -6,21 +6,148 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+
+// Interface original que representa a calculadora
+interface CalculadoraInterface {
+    void adicionarNumero(String numero);
+    void adicionarOperacao(String operacao);
+    void calcularResultado();
+    void limpar();
+    int getResultado();
+}
+
+// Classe que representa a calculadora
+class Calculadora implements CalculadoraInterface {
+    private String entradaAtual = "";
+    private String operacaoAtual = "";
+    private int resultadoAtual = 0;
+
+    public void adicionarNumero(String numero) {
+        entradaAtual += numero;
+    }
+
+    public void adicionarOperacao(String operacao) {
+        if (!entradaAtual.isEmpty()) {
+            operacaoAtual = operacao;
+            entradaAtual += operacao;
+        }
+    }
+
+    public void calcularResultado() {
+        if (!entradaAtual.isEmpty() && !operacaoAtual.isEmpty()) {
+            List<Integer> numeros = parseEntrada(entradaAtual);
+
+            if (numeros.size() < 2) {
+                // Lidar com erro
+                return;
+            }
+
+            int porta = getPortaParaOperacao(operacaoAtual);
+            try (Socket socket = new Socket("127.0.0.1", porta)) {
+                DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+
+                outputStream.writeInt(numeros.size());
+                for (int num : numeros) {
+                    outputStream.writeInt(num);
+                }
+
+                int resultado = inputStream.readInt();
+
+                // Atualizar o resultado atual
+                resultadoAtual = resultado;
+            } catch (IOException ex) {
+                
+            }
+        }
+    }
+
+    public void limpar() {
+        entradaAtual = "";
+        operacaoAtual = "";
+    }
+
+    public int getResultado() {
+        return resultadoAtual;
+    }
+
+    private List<Integer> parseEntrada(String entrada) {
+        String[] partes = entrada.split("[+\\-*/]");
+        List<Integer> numeros = new ArrayList<>();
+
+        for (String parte : partes) {
+            try {
+                int num = Integer.parseInt(parte.trim());
+                numeros.add(num);
+            } catch (NumberFormatException e) {
+                // Ignorar entradas não numéricas
+            }
+        }
+
+        return numeros;
+    }
+
+    private int getPortaParaOperacao(String operacao) {
+        switch (operacao) {
+            case "+":
+                return 12345; // Porta do ServerMais
+            case "-":
+                return 12346; // Porta do ServerMenos
+            case "*":
+                return 12347; // Porta do ServerMulti
+            case "/":
+                return 12348; // Porta do ServerDivisao
+            default:
+                throw new IllegalArgumentException("Operação inválida");
+        }
+    }
+}
+
+// Adaptador que conecta a interface da calculadora com a Calculadora original
+class CalculadoraAdapter implements CalculadoraInterface {
+    private final Calculadora calculadora;
+
+    public CalculadoraAdapter(Calculadora calculadora) {
+        this.calculadora = calculadora;
+    }
+
+    public void adicionarNumero(String numero) {
+        calculadora.adicionarNumero(numero);
+    }
+
+    public void adicionarOperacao(String operacao) {
+        calculadora.adicionarOperacao(operacao);
+    }
+
+    public void calcularResultado() {
+        calculadora.calcularResultado();
+    }
+
+    public void limpar() {
+        calculadora.limpar();
+    }
+
+    public int getResultado() {
+        return calculadora.getResultado();
+    }
+}
 
 public class CalculadoraSwingClient extends JFrame {
     private final JTextField campoDeExibicao;
     private final JPanel painelDeBotoes;
     private final JButton[] botoesNumericos;
-    private final JButton[] botoesOperacao;
+    private final JButton botaoSoma;
+    private final JButton botaoSubtracao;
+    private final JButton botaoMultiplicacao;
+    private final JButton botaoDivisao;
     private final JButton botaoIgual;
     private final JButton botaoLimpar;
     private final JLabel rotuloResultado;
+    private final JButton botaoUsarResultado;
 
-    private String entradaAtual = "";
-    private List<String> operacoes = new ArrayList<>();
+    private final CalculadoraInterface calculadora;
 
     public CalculadoraSwingClient() {
         setTitle("Calculadora");
@@ -43,27 +170,35 @@ public class CalculadoraSwingClient extends JFrame {
             painelDeBotoes.add(botoesNumericos[i]);
         }
 
-        botoesOperacao = new JButton[4];
-        botoesOperacao[0] = criarBotaoOperacao("+");
-        botoesOperacao[1] = criarBotaoOperacao("-");
-        botoesOperacao[2] = criarBotaoOperacao("*");
-        botoesOperacao[3] = criarBotaoOperacao("/");
-        for (JButton botao : botoesOperacao) {
-            painelDeBotoes.add(botao);
-        }
-
+        botaoSoma = criarBotaoOperacao("+");
+        botaoSubtracao = criarBotaoOperacao("-");
+        botaoMultiplicacao = criarBotaoOperacao("*");
+        botaoDivisao = criarBotaoOperacao("/");
         botaoIgual = new JButton("=");
         botaoIgual.setFont(new Font("Arial", Font.PLAIN, 18));
         botaoIgual.addActionListener(new ListenerBotaoIgual());
         botaoLimpar = new JButton("C");
         botaoLimpar.setFont(new Font("Arial", Font.PLAIN, 18));
         botaoLimpar.addActionListener(new ListenerBotaoLimpar());
+        // Adicione o botão ao painel de botões
+        botaoUsarResultado = new JButton("Usar Resultado");
+        botaoUsarResultado.setFont(new Font("Arial", Font.PLAIN, 18));
+        botaoUsarResultado.addActionListener(new ListenerBotaoUsarResultado());
 
+        painelDeBotoes.add(botaoUsarResultado);
+        painelDeBotoes.add(botaoSoma);
+        painelDeBotoes.add(botaoSubtracao);
+        painelDeBotoes.add(botaoMultiplicacao);
+        painelDeBotoes.add(botaoDivisao);
         painelDeBotoes.add(botaoIgual);
         painelDeBotoes.add(botaoLimpar);
 
         rotuloResultado = new JLabel("");
         rotuloResultado.setFont(new Font("Arial", Font.PLAIN, 24));
+
+        // Crie uma instância de Calculadora e um adaptador
+        Calculadora calculadoraOriginal = new Calculadora();
+        calculadora = new CalculadoraAdapter(calculadoraOriginal);
 
         add(campoDeExibicao, BorderLayout.NORTH);
         add(painelDeBotoes, BorderLayout.CENTER);
@@ -81,8 +216,7 @@ public class CalculadoraSwingClient extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             String numero = ((JButton) e.getSource()).getText();
-            entradaAtual += numero;
-            campoDeExibicao.setText(entradaAtual);
+            campoDeExibicao.setText(campoDeExibicao.getText() + numero);
         }
     }
 
@@ -95,88 +229,38 @@ public class CalculadoraSwingClient extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (!entradaAtual.isEmpty()) {
-                operacoes.add(entradaAtual);
-                operacoes.add(operacao);
-                entradaAtual = "";
-                campoDeExibicao.setText("");
-            }
-        }
-    }
-
-    private DecimalFormat formatoDecimal = new DecimalFormat("#.##");
-
-    private class ListenerBotaoIgual implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            if (!entradaAtual.isEmpty()) {
-                operacoes.add(entradaAtual);
-                entradaAtual = "";
-                campoDeExibicao.setText("");
-            }
-
-            if (operacoes.isEmpty()) {
-                return;
-            }
-
-            try {
-                List<String> expressao = new ArrayList<>(operacoes);
-                double resultado = avaliarExpressao(expressao);
-
-                if (resultado == (int) resultado) {
-                    campoDeExibicao.setText(String.valueOf((int) resultado));
-                } else {
-                    campoDeExibicao.setText(formatoDecimal.format(resultado));
-                }
-
-            } catch (ArithmeticException ex) {
-                campoDeExibicao.setText("Erro: Divisão por zero");
-            } catch (IllegalArgumentException ex) {
-                campoDeExibicao.setText("Erro: Expressão inválida");
-            }
-        }
-    }
-
-
-    private class ListenerBotaoLimpar implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            entradaAtual = "";
-            operacoes.clear();
+            calculadora.adicionarNumero(campoDeExibicao.getText());
+            calculadora.adicionarOperacao(operacao);
             campoDeExibicao.setText("");
         }
     }
 
-
-    private double avaliarExpressao(List<String> expressao) {
-        double resultado = Double.parseDouble(expressao.get(0));
-
-        for (int i = 1; i < expressao.size(); i += 2) {
-            String operacao = expressao.get(i);
-            double numero = Double.parseDouble(expressao.get(i + 1));
-
-            switch (operacao) {
-                case "+":
-                    resultado += numero;
-                    break;
-                case "-":
-                    resultado -= numero;
-                    break;
-                case "*":
-                    resultado *= numero;
-                    break;
-                case "/":
-                    if (numero == 0) {
-                        throw new ArithmeticException("Divisão por zero");
-                    }
-                    resultado /= numero;
-                    break;
-                default:
-                    throw new IllegalArgumentException("Operação inválida: " + operacao);
-            }
+    private class ListenerBotaoUsarResultado implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int resultado = calculadora.getResultado();
+            campoDeExibicao.setText(String.valueOf(resultado));
         }
+    }
 
-        return resultado;
+    private class ListenerBotaoIgual implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            calculadora.adicionarNumero(campoDeExibicao.getText());
+            calculadora.calcularResultado();
+            int resultado = calculadora.getResultado();
+            rotuloResultado.setText("Resultado: " + resultado);
+            campoDeExibicao.setText("");
+        }
+    }
+
+    private class ListenerBotaoLimpar implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            campoDeExibicao.setText("");
+            rotuloResultado.setText("");
+            calculadora.limpar();
+        }
     }
 
     public static void main(String[] args) {
