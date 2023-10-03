@@ -1,10 +1,10 @@
 // CalculadoraInterface.java
-public interface CalculadoraInterface {
+interface CalculadoraInterface {
     void adicionarNumero(String numero);
     void adicionarOperacao(String operacao);
     void calcularResultado();
     void limpar();
     int getResultado();
-    int getResultadoAnterior();
 
+    int getResultadoAnterior();
 }

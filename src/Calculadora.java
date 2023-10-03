@@ -5,13 +5,25 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Calculadora implements CalculadoraInterface {
+class Calculadora implements CalculadoraInterface {
+    private static Calculadora instance;
+
     private String entradaAtual = "";
     private String operacaoAtual = "";
     private int resultadoAtual = 0;
     private int resultadoAnterior = 0;
 
+    // Construtor privado para evitar a criação de instâncias externas
+    private Calculadora() {
+    }
 
+    // Método estático para obter a instância única da calculadora
+    public static Calculadora getInstance() {
+        if (instance == null) {
+            instance = new Calculadora();
+        }
+        return instance;
+    }
 
     public void adicionarNumero(String numero) {
         entradaAtual += numero;
@@ -44,16 +56,15 @@ public class Calculadora implements CalculadoraInterface {
                 }
 
                 int resultado = inputStream.readInt();
+
                 resultadoAtual = resultado;
                 // Atualizar o resultado anterior e o resultado atual
                 resultadoAnterior = resultadoAtual;
-
             } catch (IOException ex) {
                 // Lidar com exceções
             }
         }
     }
-
 
     public void limpar() {
         entradaAtual = "";
@@ -66,6 +77,7 @@ public class Calculadora implements CalculadoraInterface {
     }
 
     public int getResultadoAnterior() {
+
         return resultadoAnterior;
     }
 

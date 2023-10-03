@@ -66,7 +66,7 @@ public class CalculadoraSwingClient extends JFrame {
         rotuloResultado.setFont(new Font("Arial", Font.PLAIN, 24));
 
         // Crie uma instância de Calculadora e um adaptador
-        Calculadora calculadoraOriginal = new Calculadora();
+        Calculadora calculadoraOriginal = Calculadora.getInstance();
         calculadora = new CalculadoraAdapter(calculadoraOriginal);
 
         add(campoDeExibicao, BorderLayout.NORTH);
@@ -107,12 +107,11 @@ public class CalculadoraSwingClient extends JFrame {
     private class ListenerBotaoUsarResultado implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            int resultadoAnterior = calculadora.getResultadoAnterior();
-            campoDeExibicao.setText(String.valueOf(resultadoAnterior));
+            int resultado = calculadora.getResultadoAnterior();
+            campoDeExibicao.setText(String.valueOf(resultado));
             calculadora.limpar();
         }
     }
-
 
     private class ListenerBotaoIgual implements ActionListener {
         @Override

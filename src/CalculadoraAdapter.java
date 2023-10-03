@@ -1,4 +1,4 @@
-public class CalculadoraAdapter implements CalculadoraInterface {
+class CalculadoraAdapter implements CalculadoraInterface {
     private final Calculadora calculadora;
 
     public CalculadoraAdapter(Calculadora calculadora) {
@@ -26,7 +26,6 @@ public class CalculadoraAdapter implements CalculadoraInterface {
     }
 
     public int getResultadoAnterior() {
-       return calculadora.getResultadoAnterior();
+        return calculadora.getResultadoAnterior();
     }
-
 }
