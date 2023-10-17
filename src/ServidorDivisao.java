@@ -27,24 +27,31 @@ public class ServidorDivisao {
                 numeros.add(numero);
             }
 
-            double resultado = divisao(numeros);
+            int resultado = divisao(numeros);
 
-            saida.writeDouble(resultado);
+            saida.writeInt(resultado);
 
             socket.close();
             System.out.println("Cliente desconectado: " + socket);
         }
     }
 
-    private static double divisao(List<Integer> numeros) {
+    private static int divisao(List<Integer> numeros) {
         if (numeros.size() < 2) {
             throw new IllegalArgumentException("Pelo menos dois números são necessários para a divisão.");
         }
 
-        double resultado = (double) numeros.get(0);
+        int resultado = numeros.get(0);
         for (int i = 1; i < numeros.size(); i++) {
+            if (numeros.get(i) == 0) {
+                throw new ArithmeticException("Divisão por zero encontrada. Não é possível dividir por zero.");
+            }
+            if (resultado % numeros.get(i) != 0) {
+                throw new ArithmeticException("O resultado da divisão não é um número inteiro.");
+            }
             resultado /= numeros.get(i);
         }
         return resultado;
     }
 }
+
